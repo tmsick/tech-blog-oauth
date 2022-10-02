@@ -62,7 +62,7 @@ func main() {
 	http.HandleFunc("/oauth", handleOAuth)
 	http.HandleFunc("/callback", handleCallback)
 	http.HandleFunc("/photos", handlePhotos)
-	log.Print("Serving web server at 0.0.0.0:8080")
+	log.Print("Serving web server at localhost:8080")
 	http.ListenAndServe("0.0.0.0:8080", nil)
 }
 
