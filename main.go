@@ -90,9 +90,9 @@ func handleCallback(w http.ResponseWriter, r *http.Request) {
 	// Make a token request
 	code := r.URL.Query().Get("code")
 	q := url.Values{}
-	q.Add("grant_type", "authorization_code")               // Indicate token request
-	q.Add("code", code)                                     // The authorization code
-	q.Add("redirect_uri", "http://localhost:8080/callback") // The redirect URI
+	q.Add("grant_type", "authorization_code") // Indicate token request
+	q.Add("code", code)                       // The authorization code
+	q.Add("redirect_uri", redirectURI)        // The redirect URI
 	req, _ := http.NewRequest(http.MethodPost, "https://oauth2.googleapis.com/token", strings.NewReader(q.Encode()))
 	req.SetBasicAuth(googleClientID, googleClientSecret)
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
