@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"math/big"
 	"net/http"
 	"net/url"
@@ -39,16 +40,29 @@ const (
 )
 
 var (
-	googleClientID     = os.Getenv("GOOGLE_CLIENT_ID")
-	googleClientSecret = os.Getenv("GOOGLE_CLIENT_SECRET")
+	googleClientID     string
+	googleClientSecret string
 	store              = sessions.NewCookieStore([]byte(os.Getenv("SESSION_KEY")))
 )
+
+func init() {
+	googleClientID = os.Getenv("GOOGLE_CLIENT_ID")
+	googleClientSecret = os.Getenv("GOOGLE_CLIENT_SECRET")
+
+	if googleClientID == "" {
+		log.Fatal("Env var GOOGLE_CLIENT_ID is required")
+	}
+	if googleClientSecret == "" {
+		log.Fatal("Env var GOOGLE_CLIENT_SECRET is required")
+	}
+}
 
 func main() {
 	http.HandleFunc("/", handleIndex)
 	http.HandleFunc("/oauth", handleOAuth)
 	http.HandleFunc("/callback", handleCallback)
 	http.HandleFunc("/photos", handlePhotos)
+	log.Print("Serving web server at 0.0.0.0:8080")
 	http.ListenAndServe("0.0.0.0:8080", nil)
 }
 
