@@ -118,6 +118,7 @@ func handleCallback(w http.ResponseWriter, r *http.Request) {
 	var token TokenResponse
 	json.Unmarshal(body, &token)
 	session.Values["access_token"] = token.AccessToken
+	session.Save(r, w)
 
 	// Redirect the user agent to the photos page
 	http.Redirect(w, r, "http://localhost:8080/photos", http.StatusFound)
