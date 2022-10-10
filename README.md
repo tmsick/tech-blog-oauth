@@ -1,6 +1,6 @@
-# Tech Blog OAuth Example App
+# Tech Blog Example OAuth App
 
-This is an example OAuth application.
+This is an example OAuth client application.
 
 **DO NOT USE THE CODE AS IS IN PRODUCTION. IT LACKS PROPER ERROR HANDLING.**
 
