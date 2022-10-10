@@ -2,6 +2,8 @@ package main
 
 import (
 	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -35,8 +37,9 @@ type Photos struct {
 }
 
 const (
-	lenState    = 30
-	redirectURI = "http://localhost:8080/callback"
+	lenState        = 30
+	lenCodeVerifier = 64
+	redirectURI     = "http://localhost:8080/callback"
 )
 
 var (
@@ -72,11 +75,19 @@ func handleIndex(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleOAuth(w http.ResponseWriter, r *http.Request) {
-	// Store a random state to session
+	// Save `state` and `code_verifier` to session
 	session, _ := store.Get(r, "session")
+	// Generate a random state
 	state, _ := randomString(lenState)
 	session.Values["state"] = state
+	// Generate code_verifier
+	codeVerifier, _ := randomString(lenCodeVerifier)
+	session.Values["code_verifier"] = codeVerifier
 	session.Save(r, w)
+
+	// Generate code_challenge
+	b := sha256.Sum256([]byte(codeVerifier))
+	codeChallenge := base64.URLEncoding.WithPadding(base64.NoPadding).EncodeToString(b[:])
 
 	// Redirect the user agent == Make a authorization request
 	u, _ := url.Parse("https://accounts.google.com/o/oauth2/v2/auth")
@@ -86,6 +97,8 @@ func handleOAuth(w http.ResponseWriter, r *http.Request) {
 	q.Add("state", state)                                                    // The random state
 	q.Add("scope", "https://www.googleapis.com/auth/photoslibrary.readonly") // The scope we need
 	q.Add("redirect_uri", redirectURI)                                       // The redirect URI
+	q.Add("code_challenge", codeChallenge)                                   // Code challenge
+	q.Add("code_challenge_method", "S256")                                   // Code challenge method
 	u.RawQuery = q.Encode()
 	http.Redirect(w, r, u.String(), http.StatusFound)
 }
@@ -98,7 +111,11 @@ func handleCallback(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintln(w, "Invalid state")
 		return
 	}
+	// Get `code_verifier`
+	codeVerifier := session.Values["code_verifier"].(string)
+	// Clear session
 	session.Values["state"] = ""
+	session.Values["code_verifier"] = ""
 	session.Save(r, w)
 
 	// Make a token request
@@ -107,6 +124,7 @@ func handleCallback(w http.ResponseWriter, r *http.Request) {
 	q.Add("grant_type", "authorization_code") // Indicate token request
 	q.Add("code", code)                       // The authorization code
 	q.Add("redirect_uri", redirectURI)        // The redirect URI
+	q.Add("code_verifier", codeVerifier)      // Code verifier
 	req, _ := http.NewRequest(http.MethodPost, "https://oauth2.googleapis.com/token", strings.NewReader(q.Encode()))
 	req.SetBasicAuth(googleClientID, googleClientSecret)
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
