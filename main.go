@@ -104,19 +104,20 @@ func handleOAuth(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleCallback(w http.ResponseWriter, r *http.Request) {
-	// Confirm `state` matches
+	// Retrieve `state` and `code_verifier` from session
 	session, _ := store.Get(r, "session")
-	if r.URL.Query().Get("state") != session.Values["state"] {
+	state := session.Values["state"].(string)
+	codeVerifier := session.Values["code_verifier"].(string)
+	session.Values["state"] = ""
+	session.Values["code_verifier"] = ""
+	session.Save(r, w)
+
+	// Confirm `state` matches
+	if r.URL.Query().Get("state") != state {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintln(w, "Invalid state")
 		return
 	}
-	// Get `code_verifier`
-	codeVerifier := session.Values["code_verifier"].(string)
-	// Clear session
-	session.Values["state"] = ""
-	session.Values["code_verifier"] = ""
-	session.Save(r, w)
 
 	// Make a token request
 	code := r.URL.Query().Get("code")
